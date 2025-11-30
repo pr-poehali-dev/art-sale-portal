@@ -5,6 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 
 interface Artwork {
@@ -16,6 +19,7 @@ interface Artwork {
   image: string;
   description: string;
   size: string;
+  sizeCategory: string;
   material: string;
   available: boolean;
 }
@@ -31,6 +35,10 @@ const Index = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [priceRange, setPriceRange] = useState([0, 100000]);
+  const [sizeFilter, setSizeFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('default');
+  const [showFilters, setShowFilters] = useState(false);
 
   const categories = [
     { id: 'all', label: 'Все работы' },
@@ -49,6 +57,7 @@ const Index = () => {
       image: 'https://cdn.poehali.dev/projects/f639d28d-7fc0-405a-a7b7-682a6d661be1/files/76557127-4f80-4a15-88ea-0acfa6d59c18.jpg',
       description: 'Масляная живопись, изображающая умиротворяющий закат над горным озером. Работа выполнена в классической технике с использованием натуральных пигментов.',
       size: '60x80 см',
+      sizeCategory: 'medium',
       material: 'Холст, масло',
       available: true
     },
@@ -61,6 +70,7 @@ const Index = () => {
       image: 'https://cdn.poehali.dev/projects/f639d28d-7fc0-405a-a7b7-682a6d661be1/files/d3adaf51-3d70-47be-b335-570343cc4f5e.jpg',
       description: 'Закажите индивидуальный портрет в классической манере. Работаю по фотографии, срок выполнения 7-14 дней. Возможна доработка до полного соответствия вашим ожиданиям.',
       size: 'На выбор',
+      sizeCategory: 'custom',
       material: 'Холст, масло',
       available: true
     },
@@ -73,6 +83,7 @@ const Index = () => {
       image: 'https://cdn.poehali.dev/projects/f639d28d-7fc0-405a-a7b7-682a6d661be1/files/eca6d343-0d7b-4848-a5f0-8192725c7c6c.jpg',
       description: 'Изысканный натюрморт с букетом цветов в классической вазе. Яркие цвета и реалистичная передача текстур делают эту работу идеальной для любого интерьера.',
       size: '50x70 см',
+      sizeCategory: 'medium',
       material: 'Холст, масло',
       available: true
     },
@@ -85,6 +96,7 @@ const Index = () => {
       image: 'https://cdn.poehali.dev/projects/f639d28d-7fc0-405a-a7b7-682a6d661be1/files/76557127-4f80-4a15-88ea-0acfa6d59c18.jpg',
       description: 'Профессиональная копия знаменитой работы Ван Гога. Выполнена в оригинальной технике с точным соблюдением цветовой палитры и мазков.',
       size: '73x92 см',
+      sizeCategory: 'large',
       material: 'Холст, масло',
       available: true
     },
@@ -97,6 +109,7 @@ const Index = () => {
       image: 'https://cdn.poehali.dev/projects/f639d28d-7fc0-405a-a7b7-682a6d661be1/files/eca6d343-0d7b-4848-a5f0-8192725c7c6c.jpg',
       description: 'Динамичное изображение морской стихии с играющими волнами и драматичным небом. Идеально для создания атмосферы в морском стиле.',
       size: '70x100 см',
+      sizeCategory: 'large',
       material: 'Холст, масло',
       available: true
     },
@@ -109,14 +122,32 @@ const Index = () => {
       image: 'https://cdn.poehali.dev/projects/f639d28d-7fc0-405a-a7b7-682a6d661be1/files/d3adaf51-3d70-47be-b335-570343cc4f5e.jpg',
       description: 'Создам семейный портрет любой сложности. До 4 человек в одной композиции. Работаю по фотографиям, учитываю все ваши пожелания по композиции и фону.',
       size: 'На выбор',
+      sizeCategory: 'custom',
       material: 'Холст, масло',
       available: true
     }
   ];
 
-  const filteredArtworks = activeCategory === 'all' 
-    ? artworks 
-    : artworks.filter(art => art.category === activeCategory);
+  const sizeCategories = [
+    { id: 'all', label: 'Все размеры' },
+    { id: 'small', label: 'Малый (до 50 см)' },
+    { id: 'medium', label: 'Средний (50-70 см)' },
+    { id: 'large', label: 'Большой (70+ см)' },
+    { id: 'custom', label: 'На заказ' }
+  ];
+
+  let filteredArtworks = artworks
+    .filter(art => activeCategory === 'all' || art.category === activeCategory)
+    .filter(art => art.priceNum >= priceRange[0] && art.priceNum <= priceRange[1])
+    .filter(art => sizeFilter === 'all' || art.sizeCategory === sizeFilter);
+
+  if (sortBy === 'price-asc') {
+    filteredArtworks = [...filteredArtworks].sort((a, b) => a.priceNum - b.priceNum);
+  } else if (sortBy === 'price-desc') {
+    filteredArtworks = [...filteredArtworks].sort((a, b) => b.priceNum - a.priceNum);
+  } else if (sortBy === 'name') {
+    filteredArtworks = [...filteredArtworks].sort((a, b) => a.title.localeCompare(b.title));
+  }
 
   const addToCart = (artwork: Artwork) => {
     const existingItem = cart.find(item => item.artwork.id === artwork.id);
@@ -245,7 +276,7 @@ const Index = () => {
         <div className="container mx-auto">
           <h2 className="text-5xl font-light mb-12 text-center">Галерея работ</h2>
           
-          <div className="flex justify-center gap-4 mb-12 flex-wrap">
+          <div className="flex justify-center gap-4 mb-8 flex-wrap">
             {categories.map(cat => (
               <Button
                 key={cat.id}
@@ -257,6 +288,88 @@ const Index = () => {
               </Button>
             ))}
           </div>
+
+          <div className="flex justify-center mb-8">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowFilters(!showFilters)}
+              className="gap-2"
+            >
+              <Icon name={showFilters ? "X" : "SlidersHorizontal"} size={18} />
+              {showFilters ? 'Скрыть фильтры' : 'Показать фильтры'}
+            </Button>
+          </div>
+
+          {showFilters && (
+            <Card className="mb-8 p-6 animate-fade-in">
+              <div className="grid md:grid-cols-3 gap-6">
+                <div>
+                  <Label className="mb-3 block font-semibold">Цена</Label>
+                  <div className="space-y-4">
+                    <Slider
+                      min={0}
+                      max={100000}
+                      step={5000}
+                      value={priceRange}
+                      onValueChange={setPriceRange}
+                      className="mb-2"
+                    />
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>{priceRange[0].toLocaleString('ru-RU')} ₽</span>
+                      <span>{priceRange[1].toLocaleString('ru-RU')} ₽</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="mb-3 block font-semibold">Размер</Label>
+                  <Select value={sizeFilter} onValueChange={setSizeFilter}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sizeCategories.map(size => (
+                        <SelectItem key={size.id} value={size.id}>
+                          {size.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="mb-3 block font-semibold">Сортировка</Label>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">По умолчанию</SelectItem>
+                      <SelectItem value="price-asc">Цена: по возрастанию</SelectItem>
+                      <SelectItem value="price-desc">Цена: по убыванию</SelectItem>
+                      <SelectItem value="name">По названию</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-between items-center">
+                <p className="text-sm text-muted-foreground">
+                  Найдено работ: <span className="font-semibold">{filteredArtworks.length}</span>
+                </p>
+                <Button 
+                  variant="ghost"
+                  onClick={() => {
+                    setPriceRange([0, 100000]);
+                    setSizeFilter('all');
+                    setSortBy('default');
+                  }}
+                >
+                  Сбросить фильтры
+                </Button>
+              </div>
+            </Card>
+          )}
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredArtworks.map(art => (
